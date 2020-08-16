@@ -1,5 +1,7 @@
 # FormateaBot
-Code of @FormateaBot in Telegram
+Code of @FormateaBot in Telegram.
+
+Works in Raspberry Pi 3 with Raspbian
 
 ## Installation
 
