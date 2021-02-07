@@ -1,3 +1,5 @@
+from pathlib import PosixPath as Path
+
 from PIL import Image, ImageDraw, ImageFont
 from textwrap import wrap
 import numpy as np
@@ -109,6 +111,16 @@ def create_text_gradient(text, imgx, imgy, *colors):
         size_x, size_y = image_crop.size
 
     return image_crop
+
+
+def resize_image_for_sticker(path: Path):
+    img = Image.open(str(path))
+    ratio = 512/max(img.size)
+    new_size = (int(img.size[0]*ratio), int(img.size[1]*ratio))
+    img = img.resize(new_size, Image.ANTIALIAS)
+    result = path.with_suffix(".png")
+    img.save(result, "png")
+    return result
 
 
 if __name__ == '__main__':

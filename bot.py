@@ -2,14 +2,15 @@ import colorsys
 import io
 import logging
 import random
+from pathlib import PosixPath as Path
 from uuid import uuid4
 
-from telegram import InlineQueryResultArticle, InputTextMessageContent, InlineQueryResultCachedSticker
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import InlineQueryResultArticle, InputTextMessageContent, InlineQueryResultCachedSticker, Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from telegram.ext import InlineQueryHandler
 
 from text_editor import TextEditor
-from word_art import create_text_gradient
+from word_art import create_text_gradient, resize_image_for_sticker
 
 logging.basicConfig(filename='app.log',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -27,7 +28,8 @@ with open('sticker_dumper.txt', 'r') as f:
 
 MAX_LEN = 100
 
-def fraktur(update, context):
+
+def fraktur(update: Update, context: CallbackContext):
     text = TextEditor.fraktur(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -35,7 +37,7 @@ def fraktur(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def cursive(update, context):
+def cursive(update: Update, context: CallbackContext):
     text = TextEditor.cursive(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -43,7 +45,7 @@ def cursive(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def sans(update, context):
+def sans(update: Update, context: CallbackContext):
     text = TextEditor.sans(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -51,7 +53,7 @@ def sans(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def squared(update, context):
+def squared(update: Update, context: CallbackContext):
     text = TextEditor.squared(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -59,7 +61,7 @@ def squared(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def doublestruck(update, context):
+def doublestruck(update: Update, context: CallbackContext):
     text = TextEditor.doublestruck(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -67,7 +69,7 @@ def doublestruck(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def circled(update, context):
+def circled(update: Update, context: CallbackContext):
     text = TextEditor.circled(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -75,7 +77,7 @@ def circled(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def cursed(update, context):
+def cursed(update: Update, context: CallbackContext):
     text = TextEditor.cursed(' '.join(context.args))
     if text:
         context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -83,7 +85,7 @@ def cursed(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
 
-def sticker(update, context):
+def sticker(update: Update, context: CallbackContext):
     text = ' '.join(context.args)
     if text:
         if len(text) > MAX_LEN:
@@ -97,7 +99,19 @@ def sticker(update, context):
             return
     context.bot.send_message(chat_id=update.effective_chat.id, text="I need some text to convert")
 
-def log_stuff(update, context):
+
+def resize_image(update: Update, context: CallbackContext):
+    file_id = update.message.photo[-1].file_id
+    file_path = Path(file_id)
+    context.bot.get_file(file_id).download(str(file_path))
+    file_resized = resize_image_for_sticker(file_path)
+    with file_resized.open('rb') as f:
+        context.bot.send_document(chat_id=update.effective_chat.id, document=f)
+    file_path.unlink()
+    file_resized.unlink()
+
+
+def log_stuff(update: Update, context: CallbackContext):
     logging.info(context.chat_data)
     logging.info(context.user_data)
     logging.info(update.effective_chat.id)
@@ -119,7 +133,7 @@ def get_sticker_id(bot, text):
     return sent_sticker.sticker.file_id
 
 
-def inline_fraktur(update, context):
+def inline_functions(update: Update, context: CallbackContext):
     query = update.inline_query.query
     if not query or len(query) > MAX_LEN:
         return
@@ -165,7 +179,7 @@ def inline_fraktur(update, context):
     context.bot.answer_inline_query(update.inline_query.id, results)
 
 
-def send_help(update, context):
+def send_help(update: Update, context: CallbackContext):
     text = """/fraktur - 𝖂𝖗𝖎𝖙𝖊𝖘 𝖙𝖊𝖝𝖙 𝖎𝖓 𝖋𝖗𝖆𝖐𝖙𝖚𝖗
 /cursive - 𝓦𝓻𝓲𝓽𝓮𝓼 𝓽𝓮𝔁𝓽 𝓲𝓷 𝓬𝓾𝓻𝓼𝓲𝓿𝓮
 /sans - 𝖶𝗋𝗂𝗍𝖾𝗌 𝗍𝖾𝗑𝗍 𝗂𝗇 𝗌𝖺𝗇𝗌
@@ -179,7 +193,7 @@ It also works inline! Try writing @FormateaBot in another chat"""
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 
-dispatcher.add_handler(InlineQueryHandler(inline_fraktur))
+dispatcher.add_handler(InlineQueryHandler(inline_functions))
 dispatcher.add_handler(CommandHandler('fraktur', fraktur))
 dispatcher.add_handler(CommandHandler('cursive', cursive))
 dispatcher.add_handler(CommandHandler('sans', sans))
@@ -189,6 +203,7 @@ dispatcher.add_handler(CommandHandler('cursed', cursed))
 dispatcher.add_handler(CommandHandler('doublestruck', doublestruck))
 dispatcher.add_handler(CommandHandler('sticker', sticker))
 dispatcher.add_handler(CommandHandler('help', send_help))
+dispatcher.add_handler(MessageHandler(Filters.photo, resize_image))
 dispatcher.add_handler(MessageHandler(Filters.text, log_stuff))
 
 if __name__ == '__main__':
